@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Dashboard       from './components/Dashboard'
 import ApartmentDetail from './components/ApartmentDetail'
+import PacmanGame       from './components/PacmanGame'
 import { fetchApartments } from './api'
 
 export default function App() {
@@ -9,6 +10,7 @@ export default function App() {
   const [error,        setError]        = useState(null)
   const [selectedId,   setSelectedId]   = useState(null)
   const [lastUpdated,  setLastUpdated]  = useState(null)
+  const [showGame,     setShowGame]     = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -59,7 +61,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {selectedId ? (
+      {showGame ? (
+        <PacmanGame onBack={() => setShowGame(false)} />
+      ) : selectedId ? (
         <ApartmentDetail
           apartment={apartments.find(a => a.id === selectedId)}
           onBack={() => setSelectedId(null)}
@@ -70,6 +74,7 @@ export default function App() {
           lastUpdated={lastUpdated}
           onSelect={setSelectedId}
           onRefresh={load}
+          onPlayGame={() => setShowGame(true)}
         />
       )}
     </div>
