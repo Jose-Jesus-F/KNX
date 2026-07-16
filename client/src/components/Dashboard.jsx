@@ -58,13 +58,22 @@ export default function Dashboard({ apartments, lastUpdated, onSelect, onRefresh
             {lastUpdated && <> · actualizado {updatedStr}</>}
           </p>
         </div>
-        <button
-          onClick={onRefresh}
-          className="px-4 py-2 text-sm bg-white border border-gray-200 rounded-lg
-                     hover:bg-gray-50 transition-colors shadow-sm font-medium text-gray-700"
-        >
-          Actualizar
-        </button>
+        <div className="flex items-center gap-2">
+          <a
+            href="/juego"
+            className="px-4 py-2 text-sm bg-white border border-gray-200 rounded-lg
+                       hover:bg-gray-50 transition-colors shadow-sm font-medium text-gray-700"
+          >
+            🚢 Hundir la flota
+          </a>
+          <button
+            onClick={onRefresh}
+            className="px-4 py-2 text-sm bg-white border border-gray-200 rounded-lg
+                       hover:bg-gray-50 transition-colors shadow-sm font-medium text-gray-700"
+          >
+            Actualizar
+          </button>
+        </div>
       </div>
 
       {/* ── Summary stats ── */}
