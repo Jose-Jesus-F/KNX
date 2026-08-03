@@ -44,10 +44,7 @@ app.get('/api/apartments', (_req, res) => {
 app.get('/api/apartments/:id/readings', (req, res) => {
   const { from, to, granularity = 'hour' } = req.query;
 
-  const params = [Number(req.params.id)];
-  let dateFilter = '';
-  if (from) { dateFilter += ' AND timestamp >= ?'; params.push(from); }
-  if (to)   { dateFilter += ' AND timestamp <= ?'; params.push(to);   }
+  const aptId = Number(req.params.id);
 
   const groupFormats = {
     hour:  "strftime('%Y-%m-%dT%H:00:00', timestamp)",
@@ -56,17 +53,35 @@ app.get('/api/apartments/:id/readings', (req, res) => {
   };
   const fmt = groupFormats[granularity] || groupFormats.hour;
 
+  // Use LAG window function so each row's delta = kwh_total - previous reading.
+  // Fetch one extra reading before 'from' to correctly compute the first delta.
+  const extraParams = [aptId];
+  let extraFilter = '';
+  if (from) { extraFilter += ' AND timestamp >= ?'; extraParams.push(from); }
+  if (to)   { extraFilter += ' AND timestamp <= ?'; extraParams.push(to);   }
+
   const rows = db.prepare(`
+    WITH deltas AS (
+      SELECT
+        timestamp,
+        power_w,
+        ${fmt} AS period,
+        COALESCE(
+          kwh_total - LAG(kwh_total) OVER (ORDER BY timestamp),
+          0
+        ) AS kwh_delta
+      FROM readings
+      WHERE apartment_id = ? ${extraFilter}
+    )
     SELECT
-      ${fmt}                              AS period,
-      MAX(kwh_total) - MIN(kwh_total)     AS kwh_consumed,
-      AVG(power_w)                        AS avg_power_w,
-      MAX(power_w)                        AS max_power_w
-    FROM readings
-    WHERE apartment_id = ? ${dateFilter}
-    GROUP BY ${fmt}
+      period,
+      SUM(CASE WHEN kwh_delta > 0 THEN kwh_delta ELSE 0 END) AS kwh_consumed,
+      AVG(power_w)  AS avg_power_w,
+      MAX(power_w)  AS max_power_w
+    FROM deltas
+    GROUP BY period
     ORDER BY period
-  `).all(...params);
+  `).all(...extraParams);
 
   res.json(rows);
 });
